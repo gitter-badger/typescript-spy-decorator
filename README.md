@@ -1,50 +1,42 @@
-# TypeScript @spy decorator
+# AtSpy
 
-## @spy is a open-source TypeScript decorator which allows developers to spy method calls during the software testing process. 
+[![Join the chat at https://gitter.im/AtSpy/AtSpy](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/AtSpy/AtSpy?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+[![Join the chat at https://gitter.im/AtSpy/typescript-spy-decorator](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/AtSpy/AtSpy?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+## Standalone test spies for JavaScript powered by [TypeScript](http://www.typescriptlang.org/), [Gulp](http://gulpjs.com/) & [Decorators (ES7)](https://github.com/wycats/javascript-decorators). No dependencies, works with any unit testing framework.
 
 ## What is a spy?
 A spy is a function that records some details  about a function when it is invoked. Some of these details recored include:
 
 - Arguments.
 - Return value.
-- The value of this. 
-- A exception thrown (if any). 
+- The value of this.
+- A exception thrown (if any).
 
 Spies are useful to test how certain methods are used throughout a system under test. The following example shows how to use the @spy decorator to observe some methods.
 
-## Code
-Let's write a simple class to demonstrate how to use the @spy decorator.
-```
-class Calculator {
-  public sume(a : number, b : number) : number {
-    return a + b;
-  }
-  public multiply(a : number, b : number) : number {
-   return a * b;
-  }
-}
-```
-## Spy
-@spy can spy on existing methods. When doing so, the original function will behave just as normal but you will have access to data about all calls. 
-```
-import spy = require("spy-decorator");
+Using @spy is really easy.
 
-class CalculatorSpy extends Calculator {
-  public spies: any; // Set by decorator
-  @spy
+## 1. Write some code
+Let's write a simple class to demonstrate how to use the @spy decorator.
+
+```
+class Calculator {
   public sume(a : number, b : number) : number {
-    return super.sume(a, b);
+    return a + b;
   }
-  @spy
   public multiply(a : number, b : number) : number {
-    return super.multiply(a, b);
+   return a * b;
   }
 }
 ```
-Alternatively, we can add spy directly to the class declaration and use a gulp task (coming soon) to remove @spy annotations when deploying top a production environment.
+
+## 2. Decorate classes or methods with the @spy decorator
+@spy can spy on methods. When doing so, the original function will behave just as normal but you will have access to data about all calls.
+
 ```
 class Calculator {
-  @spy
   public sume(a : number, b : number) : number {
     return a + b;
   }
@@ -54,7 +46,7 @@ class Calculator {
   }
 }
 ```
-We are also going to develop a class decorator:
+We are also working on a class decorator (coming soon):
 ```
 @spy
 class Calculator {
@@ -66,54 +58,63 @@ class Calculator {
   }
 }
 ```
+> **Note: We can add spy to the class declaration and use a gulp task (coming soon) to remove Atspy annotations when deploying to a production environment.**
 
-## Test
+## 3. Test your code
 When the method decorated is invoked the @spy decorator will record the call details.
+
 ```
-var calculator = new CalculatorSpy();
+var calculator = new Calculator();
+var result1 = calculator.multiply(2, 3);
+var result2 = calculator.multiply(5, 5);
 
-// sume spy
+var s = AtSpy.getSpies(calculator).multiply;
 
-calculator.sume(2, 3);
-calculator.sume(5, 5);
+s.called();                            // true
+s.calledOnce();                        // false
+s.calledTwice();                       // true
+s.calledThrice();                      // false
+s.callCount();                         // 2
+s.threw();                             // false
+s.firstCall().returnValue;             // Matcher(5)
+s.firstCall().returnValue.isDefined(); // true
+s.firstCall().returnValue.match(5);    // true
+s.firstCall().returnValue.value();     // 5
+s.firstCall().returnValue.isNumber();  // true
+s.secondCall().args[0].value();        // [5,5]
+s.getCalls();                          // Call[] *
+s.firstCall();                         // getCalls()[0] *
 
-calculator.spies.sume.called();                    // true
-calculator.spies.sume.calledOnce();                // false
-calculator.spies.sume.calledTwice();               // true
-calculator.spies.sume.calledThrice();              // false
-calculator.spies.sume.callCount();                 // 2
-calculator.spies.sume.threw();                     // false
-calculator.spies.sume.calls;                       // FunctionCall[] (see image bellow)
-calculator.spies.sume.firstCall();                 // calls[0] (see image bellow)
-calculator.spies.sume.firstCall().returnValue;     // 5
-calculator.spies.sume.secondCall().args;           // [5,5]
+// * see image bellow
 
-// multiply spy
+// easy to use with an assertion library
+var expect = chai.expect;
 
-calculator.multiply(2, 3);
-calculator.multiply(5, 5);
-
-calculator.spies.multiply.called();                // true
-calculator.spies.multiply.calledOnce();            // false
-calculator.spies.multiply.firstCall().args;        // [2,3]
-calculator.spies.multiply.firstCall().returnValue; // 6
+expect(s.getCalls().length).to.equal(2);
+expect(s.getCalls()[0].returnValue.match(result1)).to.be.true;
+expect(s.getCalls()[1].returnValue.match(result1)).to.be.true;
+expect(s.getCalls()[0].thisValue.isDefined()).to.be.true;
+expect(s.getCalls()[1].thisValue.match(calculator)).to.be.true;
 ```
+
 ![multiply calls](https://upload.wikimedia.org/wikipedia/commons/a/a3/Multiply_calls.png)
 
 ## What exactly @spy is able to spy?
 Take a look to interfaces to get a sneak peek of what's coming:
-- [SpyInterface](https://github.com/remojansen/typescript-spy-decorator/tree/master/source/spy.d.ts)
-- [FunctionCallInterface](https://github.com/remojansen/typescript-spy-decorator/tree/master/source/function_call.d.ts)
+- [ISpy](https://github.com/remojansen/typescript-spy-decorator/tree/master/source/spy.d.ts)
+- [ICall](https://github.com/remojansen/typescript-spy-decorator/tree/master/source/call.d.ts)
 
 
 ## Work in progress - Pull request are welcome!
 
 There are a good few not implemented methods at:
 - [/source/spy.ts](https://github.com/remojansen/typescript-spy-decorator/tree/master/source/spy.ts)
-- [/source/function_call.ts](https://github.com/remojansen/typescript-spy-decorator/tree/master/source/function_call.ts)
+- [/source/call.ts](https://github.com/remojansen/typescript-spy-decorator/tree/master/source/call.ts)
 
 If you are going to contribute check interfaces for implementation details:
-- [SpyInterface](https://github.com/remojansen/typescript-spy-decorator/tree/master/source/spy.d.ts)
-- [FunctionCallInterface](https://github.com/remojansen/typescript-spy-decorator/tree/master/source/function_call.d.ts)
+- [ISpy](https://github.com/remojansen/typescript-spy-decorator/tree/master/source/spy.d.ts)
+- [ICall](https://github.com/remojansen/typescript-spy-decorator/tree/master/source/call.d.ts)
 
-Please don't forget to add unit test id you do contribute!
+Check out the [issues](https://github.com/AtSpy/typescript-spy-decorator/issues) and use the [chat](https://gitter.im/AtSpy/typescript-spy-decorator) to find a way to collaborate.
+
+Please don't forget to add unit test if you do contribute!
